@@ -105,7 +105,9 @@ fun findProperty(name: String) =
 // do not use `object`, compiler bug
 open class ReleaseEnvironment {
     private val tag: String by lazy {
-        (findProperty("CI_TAG") ?: "3.0.0-dev").also { println("tag = $it") }
+        (findProperty("CI_TAG") ?: error("CI_TAG is required to generate a release version name.")).also {
+            println("tag = $it")
+        }
     }
     private val branch by lazy {
         getProperty("GITHUB_REF").substringAfterLast("/").also { println("branch = $it") }
