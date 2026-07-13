@@ -34,6 +34,7 @@
 #include <dxgi1_2.h>
 #include <wincodec.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <thread>
@@ -651,13 +652,17 @@ bool mpv_handle_t::save_surface_png(const char *path) {
     }
 
     const UINT width = desc.Width, height = desc.Height;
-    // RGBA rows with alpha forced opaque (mpv leaves alpha undefined).
+    // The shared texture stores RGBA. WIC's PNG encoder consumes BGRA, so swap R/B
+    // during readback and force alpha opaque (mpv leaves alpha undefined).
     std::vector<uint8_t> pixels((size_t) width * height * 4);
     for (UINT y = 0; y < height; ++y) {
         const auto *src = (const uint8_t *) mapped.pData + (size_t) y * mapped.RowPitch;
         uint8_t *dst = pixels.data() + (size_t) y * width * 4;
         memcpy(dst, src, (size_t) width * 4);
-        for (UINT x = 0; x < width; ++x) dst[x * 4 + 3] = 0xFF;
+        for (UINT x = 0; x < width; ++x) {
+            std::swap(dst[x * 4], dst[x * 4 + 2]);
+            dst[x * 4 + 3] = 0xFF;
+        }
     }
     d3d_context_->Unmap(staging, 0);
     staging->Release();
@@ -686,7 +691,7 @@ bool mpv_handle_t::save_surface_png(const char *path) {
         if (FAILED(encoder->CreateNewFrame(&frame, nullptr))) break;
         if (FAILED(frame->Initialize(nullptr))) break;
         if (FAILED(frame->SetSize(width, height))) break;
-        WICPixelFormatGUID format = GUID_WICPixelFormat32bppRGBA;
+        WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGRA;
         if (FAILED(frame->SetPixelFormat(&format))) break;
         if (FAILED(frame->WritePixels(height, width * 4, (UINT) pixels.size(), pixels.data()))) break;
         if (FAILED(frame->Commit())) break;

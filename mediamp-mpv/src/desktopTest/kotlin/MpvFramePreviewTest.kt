@@ -214,7 +214,7 @@ class MpvFramePreviewTest {
 
     /** 0.0s-2.5s solid red, 2.5s-5.0s solid blue — known pixel content for frame assertions. */
     private fun generateColorVideo(): File? {
-        val target = File(System.getProperty("java.io.tmpdir"), "mediamp-mpv-frame-preview-colors.mp4")
+        val target = File(System.getProperty("java.io.tmpdir"), "mediamp-mpv-frame-preview-colors-mpeg4.mp4")
         if (target.isFile && target.length() > 0) return target
         val ffmpeg = findFfmpeg() ?: return null
         val process = ProcessBuilder(
@@ -222,7 +222,7 @@ class MpvFramePreviewTest {
             "-f", "lavfi", "-i", "color=c=red:size=640x360:rate=30:duration=2.5",
             "-f", "lavfi", "-i", "color=c=blue:size=640x360:rate=30:duration=2.5",
             "-filter_complex", "[0:v][1:v]concat=n=2:v=1:a=0,format=yuv420p[v]",
-            "-map", "[v]", "-c:v", "libx264", "-preset", "ultrafast", "-g", "15",
+            "-map", "[v]", "-c:v", "mpeg4", "-q:v", "2", "-g", "15",
             target.absolutePath,
         ).redirectErrorStream(true).start()
         process.inputStream.readAllBytes()
@@ -231,6 +231,12 @@ class MpvFramePreviewTest {
     }
 
     private fun findFfmpeg(): String? =
-        listOf("/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg")
-            .firstOrNull { File(it).canExecute() }
+        listOfNotNull(
+            devNativeDir()?.resolve("ffmpeg.exe")?.absolutePath,
+            "/opt/homebrew/bin/ffmpeg",
+            "/usr/local/bin/ffmpeg",
+            "/usr/bin/ffmpeg",
+            "ffmpeg",
+            "ffmpeg.exe",
+        ).firstOrNull { runCatching { ProcessBuilder(it, "-version").start().waitFor() }.getOrNull() == 0 }
 }
