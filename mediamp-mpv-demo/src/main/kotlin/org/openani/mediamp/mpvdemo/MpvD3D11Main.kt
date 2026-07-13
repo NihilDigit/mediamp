@@ -46,7 +46,7 @@ fun main(args: Array<String>) {
         ?: "av://lavfi:testsrc2=size=1280x720:rate=60"
 
     val runtimeDir = requireNotNull(System.getProperty("mediamp.mpv.runtime.dir")) {
-        "mediamp.mpv.runtime.dir must point at the mpv runtime (run :mediamp-mpv:mpvAssembleWindowsX64 first)"
+        "mediamp.mpv.runtime.dir must point at an assembled mpv runtime"
     }
     MpvMediampPlayer.prepareLibraries(runtimeDir, extractRuntimeLibrary = false)
 
